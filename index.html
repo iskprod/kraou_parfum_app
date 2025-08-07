@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تطبيق تتبع المبيعات والأرباح</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      h2 {
+        color: #333;
+      }
+      section {
+        background: white;
+        padding: 15px 25px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 5px #ccc;
+      }
+      label {
+        display: block;
+        margin-top: 10px;
+      }
+      input,
+      select,
+      button {
+        padding: 8px;
+        margin-top: 5px;
+        width: 100%;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+      }
+      canvas {
+        max-width: 100%;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>📊 تتبع المبيعات والأرباح</h2>
+
+    <section>
+      <h3>➕ إضافة منتج</h3>
+      <label>اسم المنتج: <input id="productName" /></label>
+      <label>الكمية: <input id="productQty" type="number" /></label>
+      <label
+        >رأس المال للقنينة الواحدة (درهم):
+        <input id="productCost" type="number"
+      /></label>
+      <label
+        >سعر البيع للقنينة الواحدة (درهم):
+        <input id="productSell" type="number"
+      /></label>
+      <label
+        >هل هو منتج شراكة؟
+        <select id="isShared">
+          <option value="لا">لا</option>
+          <option value="نعم">نعم</option>
+        </select>
+      </label>
+      <label>اسم الشريك (إذا وُجد): <input id="partnerName" /></label>
+      <button onclick="addProduct()">➕ حفظ المنتج</button>
+    </section>
+
+    <section>
+      <h3>💰 تسجيل عملية بيع</h3>
+      <label
+        >اختر المنتج:
+        <select id="saleProduct"></select>
+      </label>
+      <label>الكمية المباعة: <input id="saleQty" type="number" /></label>
+      <button onclick="recordSale()">💾 تسجيل البيع</button>
+      <div id="saleMsg"></div>
+    </section>
+
+    <section>
+      <h3>📉 تسجيل مصروف</h3>
+      <label>الوصف: <input id="expenseDesc" /></label>
+      <label>المبلغ (درهم): <input id="expenseAmt" type="number" /></label>
+      <button onclick="addExpense()">➕ حفظ المصروف</button>
+    </section>
+
+    <section>
+      <h3>📋 تقارير الأرباح والمصاريف</h3>
+      <canvas id="reportChart"></canvas>
+      <div id="summary"></div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      let products = [],
+        sales = [],
+        expenses = [];
+
+      function addProduct() {
+        const name = document.getElementById("productName").value;
+        const qty = parseInt(document.getElementById("productQty").value);
+        const cost = parseFloat(document.getElementById("productCost").value);
+        const sell = parseFloat(document.getElementById("productSell").value);
+        const shared = document.getElementById("isShared").value === "نعم";
+        const partner = document.getElementById("partnerName").value;
+
+        products.push({ name, qty, cost, sell, shared, partner });
+        updateProductSelect();
+        alert("✔️ تم حفظ المنتج");
+      }
+
+      function updateProductSelect() {
+        const select = document.getElementById("saleProduct");
+        select.innerHTML = "";
+        products.forEach((p, i) => {
+          select.innerHTML += `<option value="${i}">${p.name}</option>`;
+        });
+      }
+
+      function recordSale() {
+        const index = document.getElementById("saleProduct").value;
+        const qtySold = parseInt(document.getElementById("saleQty").value);
+        const product = products[index];
+        if (qtySold > product.qty) return alert("❌ الكمية غير متوفرة");
+
+        const totalSell = qtySold * product.sell;
+        const totalCost = qtySold * product.cost;
+        const profit = totalSell - totalCost;
+        const partnerShare = product.shared ? profit / 2 : 0;
+        const myShare = profit - partnerShare;
+
+        product.qty -= qtySold;
+        sales.push({
+          name: product.name,
+          qtySold,
+          totalSell,
+          totalCost,
+          myShare,
+          partnerShare,
+          partner: product.partner,
+        });
+
+        document.getElementById(
+          "saleMsg"
+        ).innerText = `✔️ تم البيع. ربحك: ${myShare} درهم، نصيب الشريك: ${partnerShare} درهم`;
+        drawChart();
+        updateSummary();
+      }
+
+      function addExpense() {
+        const desc = document.getElementById("expenseDesc").value;
+        const amt = parseFloat(document.getElementById("expenseAmt").value);
+        expenses.push({ desc, amt });
+        alert("✔️ تم حفظ المصروف");
+        drawChart();
+        updateSummary();
+      }
+
+      function drawChart() {
+        const totalMyProfit = sales.reduce((sum, s) => sum + s.myShare, 0);
+        const totalExpenses = expenses.reduce((sum, e) => sum + e.amt, 0);
+
+        const ctx = document.getElementById("reportChart");
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: ["الأرباح", "المصاريف"],
+            datasets: [
+              {
+                label: "بالدرهم",
+                data: [totalMyProfit, totalExpenses],
+                backgroundColor: ["#4caf50", "#f44336"],
+              },
+            ],
+          },
+        });
+      }
+
+      function updateSummary() {
+        const totalMyProfit = sales.reduce((sum, s) => sum + s.myShare, 0);
+        const totalExpenses = expenses.reduce((sum, e) => sum + e.amt, 0);
+        const dueToPartners = sales.reduce((sum, s) => sum + s.partnerShare, 0);
+        document.getElementById("summary").innerHTML = `
+        <p>💵 <strong>ربحك الصافي:</strong> ${
+          totalMyProfit - totalExpenses
+        } درهم</p>
+        <p>🤝 <strong>ما يجب دفعه للشركاء:</strong> ${dueToPartners} درهم</p>
+      `;
+      }
+    </script>
+  </body>
+</html>
