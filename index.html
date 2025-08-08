@@ -110,6 +110,22 @@
         sales = [],
         expenses = [];
 
+      function saveData() {
+        localStorage.setItem("products", JSON.stringify(products));
+        localStorage.setItem("sales", JSON.stringify(sales));
+        localStorage.setItem("expenses", JSON.stringify(expenses));
+      }
+
+      function loadData() {
+        const p = localStorage.getItem("products");
+        const s = localStorage.getItem("sales");
+        const e = localStorage.getItem("expenses");
+
+        products = p ? JSON.parse(p) : [];
+        sales = s ? JSON.parse(s) : [];
+        expenses = e ? JSON.parse(e) : [];
+      }
+
       function addProduct() {
         const name = document.getElementById("productName").value;
         const qty = parseInt(document.getElementById("productQty").value);
@@ -120,6 +136,7 @@
 
         products.push({ name, qty, cost, sell, shared, partner });
         updateProductSelect();
+        saveData(); // ✅ حفظ البيانات
         alert("✔️ تم حفظ المنتج");
       }
 
@@ -144,6 +161,7 @@
         const myShare = profit - partnerShare;
 
         product.qty -= qtySold;
+
         sales.push({
           name: product.name,
           qtySold,
@@ -153,6 +171,7 @@
           partnerShare,
           partner: product.partner,
         });
+        saveData(); // ✅ حفظ البيانات
 
         document.getElementById(
           "saleMsg"
@@ -165,6 +184,7 @@
         const desc = document.getElementById("expenseDesc").value;
         const amt = parseFloat(document.getElementById("expenseAmt").value);
         expenses.push({ desc, amt });
+        saveData(); // ✅ حفظ البيانات
         alert("✔️ تم حفظ المصروف");
         drawChart();
         updateSummary();
@@ -201,6 +221,11 @@
         <p>🤝 <strong>ما يجب دفعه للشركاء:</strong> ${dueToPartners} درهم</p>
       `;
       }
+
+      loadData(); // تحميل البيانات عند بداية التشغيل
+      updateProductSelect();
+      drawChart();
+      updateSummary();
     </script>
 
     <script>
